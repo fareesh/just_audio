@@ -440,7 +440,7 @@ public class AudioPlayer implements MethodCallHandler, Player.EventListener, Aud
         String id = (String)map.get("id");
         switch ((String)map.get("type")) {
         case "progressive":
-            return new ProgressiveMediaSource.Factory(buildDataSourceFactory())
+            return new ProgressiveMediaSource.Factory(buildDataSourceFactory(), new DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true))
                     .createMediaSource(new MediaItem.Builder()
                             .setUri(Uri.parse((String)map.get("uri")))
                             .setTag(id)
