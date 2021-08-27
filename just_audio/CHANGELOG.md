@@ -1,3 +1,60 @@
+## 0.9.7
+
+* Update Gradle version.
+* Change == parameter from dynamic to Object (@cedvdb).
+* Check runtimeType in all == operators.
+* Fix Android compiler warnings.
+
+## 0.9.6
+
+* Fix iOS 12.4 `LockCachingAudioSource` fetch exception (@akindone).
+
+## 0.9.5
+
+* Fix iOS/macOS bug updating shuffle order.
+* Fix iOS/macOS bug advancing to next in shuffle order.
+
+## 0.9.4
+
+* Remember position after stop().
+
+## 0.9.3
+
+* Fix bug when updating playlist before loading.
+
+## 0.9.2
+
+* Fix Android bug when loading empty playlist.
+* Fix Android NullPointerException on stop().
+
+## 0.9.1
+
+* Fix iOS/macOS bug when setting volume before load.
+
+## 0.9.0
+
+* Update to support just_audio_background.
+
+## 0.8.1
+
+* Fix update position bug on Android.
+* Compile-time option to include/exclude microphone API.
+
+## 0.8.0
+
+* Add buffer options via AudioLoadConfiguration for iOS/Android.
+* Add setSkipSilenceEnabled for Android (@subhash279).
+* Add setPitch for Android.
+* Add audio effects:
+  * AndroidLoudnessEnhancer
+  * AndroidEqualizer
+* Dispose players when hot restarting on Android.
+
+## 0.7.5
+
+* Support rxdart 0.27.0
+* Mention INTERNET Android permission in README (@nt4f04uNd).
+
 ## 0.7.4+1
 
 * Link to tutorials in README.
