@@ -108,6 +108,7 @@ class AudioPlayer {
   bool _canUseNetworkResourcesForLiveStreamingWhilePaused = false;
   double _preferredPeakBitRate = 0;
   bool _playInterrupted = false;
+  bool _platformLoading = false;
   AndroidAudioAttributes? _androidAudioAttributes;
   final bool _androidApplyAudioAttributes;
   final bool _handleAudioSessionActivation;
@@ -1126,6 +1127,7 @@ class AudioPlayer {
       {Completer<void>? playCompleter, bool force = false}) {
     if (_disposed) return null;
     if (!force && (active == _active)) return _durationFuture;
+    _platformLoading = active;
 
     // Warning! Tricky async code lies ahead.
     // (This should definitely be made less tricky)
@@ -1205,9 +1207,16 @@ class AudioPlayer {
             sequence![index].duration = duration;
           }
         }
+        if (_platformLoading &&
+            message.processingState != ProcessingStateMessage.idle) {
+          _platformLoading = false;
+        }
         final playbackEvent = PlaybackEvent(
-          processingState:
-              ProcessingState.values[message.processingState.index],
+          // The platform may emit an idle state while it's starting up which we
+          // override here.
+          processingState: _platformLoading
+              ? ProcessingState.loading
+              : ProcessingState.values[message.processingState.index],
           updateTime: message.updateTime,
           updatePosition: message.updatePosition,
           bufferedPosition: message.bufferedPosition,
@@ -1269,14 +1278,14 @@ class AudioPlayer {
 
       _platformValue = platform;
 
-      if (audioSource != null) {
-        _playbackEventSubject.add(_playbackEvent = _playbackEvent.copyWith(
-          updatePosition: position,
-          processingState: ProcessingState.loading,
-        ));
-      }
-
       if (active) {
+        if (audioSource != null) {
+          _playbackEventSubject.add(_playbackEvent = _playbackEvent.copyWith(
+            updatePosition: position,
+            processingState: ProcessingState.loading,
+          ));
+        }
+
         final automaticallyWaitsToMinimizeStalling =
             this.automaticallyWaitsToMinimizeStalling;
         final playing = this.playing;
@@ -1398,7 +1407,7 @@ class AudioPlayer {
 /// Captures the details of any error accessing, loading or playing an audio
 /// source, including an invalid or inaccessible URL, or an audio encoding that
 /// could not be understood.
-class PlayerException {
+class PlayerException implements Exception {
   /// On iOS and macOS, maps to `NSError.code`. On Android, maps to
   /// `ExoPlaybackException.type`. On Web, maps to `MediaError.code`.
   final int code;
@@ -1416,7 +1425,7 @@ class PlayerException {
 
 /// An error that occurs when one operation on the player has been interrupted
 /// (e.g. by another simultaneous operation).
-class PlayerInterruptedException {
+class PlayerInterruptedException implements Exception {
   final String? message;
 
   PlayerInterruptedException(this.message);
@@ -3458,6 +3467,12 @@ class AndroidEqualizerBand {
     }
   }
 
+  /// Restores the gain after reactivating.
+  Future<void> _restore() async {
+    await (await _player._platform).androidEqualizerBandSetGain(
+        AndroidEqualizerBandSetGainRequest(bandIndex: index, gain: gain));
+  }
+
   static AndroidEqualizerBand _fromMessage(
           AudioPlayer player, AndroidEqualizerBandMessage message) =>
       AndroidEqualizerBand._(
@@ -3487,6 +3502,13 @@ class AndroidEqualizerParameters {
     required this.bands,
   });
 
+  /// Restore platform state after reactivating.
+  Future<void> _restore() async {
+    for (var band in bands) {
+      await band._restore();
+    }
+  }
+
   static AndroidEqualizerParameters _fromMessage(
           AudioPlayer player, AndroidEqualizerParametersMessage message) =>
       AndroidEqualizerParameters(
@@ -3512,7 +3534,10 @@ class AndroidEqualizer extends AudioEffect with AndroidAudioEffect {
   @override
   Future<void> _activate() async {
     await super._activate();
-    if (_parametersCompleter.isCompleted) return;
+    if (_parametersCompleter.isCompleted) {
+      await (await parameters)._restore();
+      return;
+    }
     final response = await (await _player!._platform)
         .androidEqualizerGetParameters(AndroidEqualizerGetParametersRequest());
     _parameters =

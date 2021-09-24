@@ -1,3 +1,21 @@
+## 0.9.11
+
+* Upgrade Android to ExoPlayer 2.15.0.
+
+## 0.9.10
+
+* Fix Android bug playing after stopping.
+
+## 0.9.9
+
+* Fix web bug adding/removing items while paused.
+
+## 0.9.8
+
+* Fix bug restoring AndroidEqualizer state after stop.
+* Make exceptions implement Exception.
+* Upgrade to ExoPlayer 2.13.3.
+
 ## 0.9.7
 
 * Update Gradle version.
