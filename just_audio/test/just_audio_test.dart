@@ -445,7 +445,7 @@ void runTests() {
         expect(response.statusCode, equals(HttpStatus.partialContent));
       } else if (start != null) {
         expect(response.headers.value(HttpHeaders.contentRangeHeader),
-            'bytes $start-/${byteRangeData.length}');
+            'bytes $start-${byteRangeData.length - 1}/${byteRangeData.length}');
         expect(response.statusCode, equals(HttpStatus.partialContent));
       } else {
         expect(response.headers.value(HttpHeaders.contentRangeHeader), null);
@@ -998,6 +998,26 @@ void runTests() {
     await player.dispose();
   });
 
+  test('play-pause', () async {
+    final player = AudioPlayer();
+    await player.setUrl('https://bar.bar/foo.mp3');
+    player.play();
+    await player.pause();
+    await Future<void>.delayed(Duration(milliseconds: 200));
+    expect(mock.mostRecentPlayer?._playing, false);
+    await player.dispose();
+  });
+
+  test('play-stop', () async {
+    final player = AudioPlayer();
+    await player.setUrl('https://bar.bar/foo.mp3');
+    player.play();
+    await player.stop();
+    await Future<void>.delayed(Duration(milliseconds: 200));
+    expect(mock.mostRecentPlayer?._playing, false);
+    await player.dispose();
+  });
+
   test('positionStream emissions: seek while paused', () async {
     final player = AudioPlayer();
     await player.setUrl('https://bar.bar/foo.mp3');
@@ -1376,7 +1396,7 @@ class MockAudioPlayer implements AudioPlayerPlatform {
   @override
   Future<SeekResponse> seek(SeekRequest request) async {
     _setPosition(request.position ?? Duration.zero);
-    _index = request.index;
+    _index = request.index ?? 0;
     _broadcastPlaybackEvent();
     return SeekResponse();
   }
